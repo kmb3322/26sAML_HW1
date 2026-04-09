@@ -1,5 +1,4 @@
 # Homework \#1
-
 **CSE 493S/599S: Advanced Machine Learning**  
 **Prof. Sewoong Oh**  
 **Due: Thursday, April 30th at 11:59pm**
@@ -9,7 +8,7 @@
 ## Instructions
 
 - Please submit this homework to Gradescope.
-- Submit the code, as well as a report containing the plots and discussion. This should ideally be a PDF file, but you can also use markdown if convenient. Also include a README, along with instructions to run your code.
+- Submit the code, artifacts (model checkpoints/outputs) as well as a report containing the plots and discussion. This should ideally be a PDF file, but you can also use markdown if convenient. Also include a README, environment definitions, along with instructions to run your code. If the code is too big to be submitted, please create a private git repo and contact the TAs to add them **before the submission deadline**.
 - This homework is to be done in teams of 2–4.
 - If you require compute, you can try using Google Colab, or use Hyak via the [Research Computing Club](https://depts.washington.edu/uwrcc/). Please reach out to the TAs if compute is a bottleneck for you.
 - The homework problems have been carefully chosen for their pedagogical value and hence might be similar or identical to those given out in similar courses at UW or other schools. Using any pre-existing solutions from these sources, from the web or from an AI model constitutes a violation of the academic integrity expected of you and is strictly prohibited.
@@ -25,7 +24,7 @@ The goal of this homework is to give you hands-on experience on training and inf
 
 ## Background and Pre-requisites
 
-The first part of this assignment uses a simple implementation of a transformer model for this assignment, available [here](https://github.com/SewoongLab/cs-493s-hw2/tree/main). The implementation is adapted from Andrej Karpathy's [nano-GPT project](https://github.com/karpathy/nanoGPT/blob/master/model.py). The second part is based on inference-time scaling strategies from s1 (https://arxiv.org/abs/2501.19393). A starter notebook is available [here](https://github.com/SewoongLab/cs-493s-hw2/tree/main). Most of this assignment is designed to be done with low compute requirements.
+The first part of this assignment uses a simple implementation of a transformer model for this assignment, available [here](https://github.com/SewoongLab/cse493s-spring26-hw1). The implementation is adapted from Andrej Karpathy's [nano-GPT project](https://github.com/karpathy/nanoGPT/blob/master/model.py). The second part is based on inference-time scaling strategies from s1 (https://arxiv.org/abs/2501.19393). A starter notebook is available [here](https://github.com/SewoongLab/cse493s-spring26-hw1). Most of this assignment is designed to be done with low compute requirements.
 
 ---
 
@@ -61,11 +60,11 @@ For another sanity check, mask the loss on the first 3 tokens and make the model
 
 ## Section 1: Training on Algorithmic Tasks
 
-In this section, you will reproduce experiments for grokking (https://arxiv.org/abs/2201.02177) in transformers. For this, you will train a small transformer model for 3 tasks — modular addition, modular subtraction and modular division.
+In this section, we will reproduce experiments for grokking (https://arxiv.org/abs/2201.02177) in transformers. For this, you will train a small transformer model for 3 tasks — modular addition, modular subtraction and modular division.
 
 ### 1.1 Data Generation
 
-You need to generate data of the form "a+b=c mod p", "a-b=c mod p" and "a/b=c mod p", where $a, b$ are natural numbers. From the original paper, $0 \leq a, b \leq p$. You need to generate this data for **2** values of $p$, $97$ and $113$. Ideally, your data should look like "a o b = c", where a, b and c are natural numbers and o is the operator (+, -, /). Ensure that you have proper train, test and val splits.
+We need to generate data of the form "a+b=c mod p", "a-b=c mod p" and "a/b=c mod p", where $a, b$ are natural numbers. From the original paper, $0 \leq a, b \leq p$. You need to generate this data for **2** values of $p$, $97$ and $113$. Ideally, your data should look like "a o b = c", where a, b and c are natural numbers and o is the operator (+, -, /). Ensure that you have proper train, test and val splits.
 
 **Deliverables:** Generated train/test splits. Include description of the process and the number of datapoints used for each split.
 
@@ -73,21 +72,21 @@ You need to generate data of the form "a+b=c mod p", "a-b=c mod p" and "a/b=c mo
 
 ### 1.2 Warmup — Addition and Subtraction Experiments
 
-Now, you will train a 1- and 2-layer models and report train and test accuracy and loss. For these experiments, set the dimension of the model to be 128, the dimension of the feedforward layer to be 512, and the number of attention heads to be 4. Train for up to $10^5$ training steps, using the Adam optimizer. Remember to only compute the loss on the output of the equation. Report performance metrics for 3 random restarts, as well as 2 values of $p = 97, 113$.
+Now, we will train a 1- and 2-layer models and report train and test accuracy and loss. For these experiments, set the dimension of the model to be 128, the dimension of the feedforward layer to be 512, and the number of attention heads to be 4. Train for up to $10^5$ training steps, using the Adam optimizer. Remember to only compute the loss on the output of the equation. Report performance metrics for 2 values of $p = 97, 113$. Also take one configuration of the experiment (single layer, $p = 97$, addition) and report the training and test curves across three random restarts. You would need to submit the model checkpoint from one of these random restarts along with your submission.
 
 Note that you might need to tune the hyperparameters. For this, it is good practice to split your train set into train and validation, and only tune your hyperparameters on the val set. You can also look at the hyperparameters in the paper.
 
-**Deliverables:** Training curves and test curves of the loss/accuracy. Report the final loss and train/test accuracy across 3 random seeds.
+**Deliverables:** Training curves and test curves of the loss/accuracy for various architectures, operations, $p$, random seeds. One model checkpoint, and an inference script demonstrating how to make the model perform addition.
 
-**Grading:** Experimental results (15 points).
+**Grading:** Experimental results (10 points), model inference and outputs (5 points).
 
 ### 1.3 Grokking
 
-Now you will try to reproduce what is essentially Fig 1 of the paper. Train on the modulo division task for $p = 97$, and see if you can get the model to grok. Refer to the paper for more details if you are stuck.
+Now we will try to reproduce what is essentially Fig 1 of the paper. Train on the modulo division task for $p = 97$, and see if you can get the model to grok. Refer to the paper for more details if you are stuck.
 
 **Deliverables:** Plot of training curves, final model checkpoint for one seed, and instructions for inference with the model.
 
-**Grading:** Grokking results (20 points).
+**Grading:** Grokking results (15 points), model inference and outputs (5 points).
 
 ### 1.4 Analysis
 
@@ -101,11 +100,13 @@ What factors could make grokking on the division task happen faster and more rel
 
 ## Section 2: Test-Time Scaling
 
-We will now shift gears away from training to inference. One powerful paradigm over the past two years has been reasoning models. These models produce a "chain-of-thought" followed by an answer. In this exercise, we will play around with some of these models. Select one of two models — `Qwen/Qwen3-4B` or `allenai/OLMo-3-7B-Think` — and perform the following experiments with it. A starter notebook with data loading and evaluation utilities is provided.
+We will now shift gears away from training to inference. One powerful paradigm over the past two years has been reasoning models. These models produce a "chain-of-thought" followed by an answer. In this exercise, we will play around with some of these models. Select one of two models — `Qwen/Qwen3-4B` or `allenai/OLMo-3-7B-Think` — and perform the following experiments with it. We will look at performance on AIME 2024, a high-school math competition dataset. A starter notebook with data loading and evaluation utilities is provided. There are two evaluation modes provided — `exact_match` and `flexible_extract`.
 
 ### 2.1 Warm-Up
 
-Report the greedy decoding accuracy with and without thinking for your chosen model, and report the distribution of the thinking lengths (in tokens) for the greedy-with-thinking condition.
+Report the greedy decoding accuracy with and without thinking for your chosen model, and report the distribution of the thinking lengths (in tokens) for the greedy-with-thinking condition. Use this exercise to understand and debug any issues with your setup, e.g. figuring out what the two eval functions do, ensuring that you parse the thinking and non-thinking traces correctly etc.
+
+> **Hint:** If you think inference is slow, consider using [vLLM](https://github.com/vllm-project/vllm) for faster generation.
 
 **Deliverables:** Accuracy numbers (with and without thinking) and a histogram of thinking lengths.
 
@@ -113,25 +114,31 @@ Report the greedy decoding accuracy with and without thinking for your chosen mo
 
 ### 2.2 Scaling Experiments
 
-The success of reasoning models has been attributed to their ability to scale up test-time compute. We will explore two axes of this scaling.
+The success of reasoning models has been attributed to their ability to scale up test-time compute. We will explore two axes of this scaling — sequential and parallel.
 
-**Sequential scaling** is done via budget forcing. The token budget $n$ refers to the number of reasoning tokens (i.e., tokens inside the model's thinking block), not the final answer tokens. For a given budget $n$, use one of the following two interventions: (1) *Truncate* — keep only the first $n$ reasoning tokens, then request a final answer; or (2) *Wait* — intercept the end-of-thinking token whenever the reasoning trace is shorter than $n$ tokens and inject the word "Wait" to force the model to continue, then request a final answer once the budget is reached. Fix the temperature to 0.6 and scale the thinking budget up to 32,000 tokens.
+**Sequential scaling** — We will use the s1 (https://arxiv.org/abs/2501.19393) strategy to scale the inference compute sequentially. Intuitively, one way to control compute is to force the model to generate longer or shorter reasoning chains till we meet the budget constraint. For simplicity, we count only the number of reasoning tokens (i.e., tokens inside the model's thinking block), not the final answer tokens in our token budget. For a given budget $n$, use one of the following two interventions: (1) *Stop*: if we detect the thinking trace is already $n$ tokens long, we immediately inject the end-thinking tag and let the model generate its final response; or (2) *Wait*: if we detect that the end-thinking tag is about to be emitted before $n$ tokens of thinking, we inject the word "Wait" to force the model to continue thinking, stopping thinking once the budget is reached before generating the final answer.
 
-**Parallel scaling** is done by sampling $m$ independent completions per problem (with thinking budget fixed at 4096 tokens per sample) and aggregating via majority voting and pass@$k$. Fix the temperature to 0.6.
+**Parallel scaling** is done by sampling $m$ independent completions per problem (with the thinking budget fixed per sample). The final answer is then returned by aggregating the answer across all $m$ completions from the model. For this, we will look at two strategies — majority voting and best-of-$m$. The former marks an answer as correct only if a majority of the $m$ generated answers are correct, while the latter does so if even one of the $m$ answers is correct. Note that best-of-$m$ is not a practically deployable method usually.
 
-We will look at performance on AIME 2024, a high-school math competition dataset. Plot (1) total number of thinking tokens against accuracy, and (2) idealized wall-clock time against accuracy, where idealized wall-clock time assumes sufficient GPU capacity to batch all $m$ parallel generations simultaneously, so parallel wall-clock time equals the time for a single sample. If possible, include both horizontal and vertical error bars. Plot both the exact and flexible accuracy (defined in the notebook).
+**Experiments:** For our experiments, you will scale the thinking budget to be up to 32,000 tokens generated. The parallel strategy will fix the number of thinking tokens per-sample to be 4000, and scale up the number of independent completions. Use the recommended sampling settings (e.g. temperature 0.6, top-k=50, top-p=0.95) according to the model cards.
 
-**Deliverables:** Scaling plots for sequential and parallel strategies (tokens vs. accuracy and time vs. accuracy), showing both exact and flexible accuracy.
+Plot the AIME-2024 accuracy against total number of thinking tokens generated. This is a rough proxy for the compute used. Plot both the exact and flexible accuracy in separate plots (defined in the notebook). For the parallel strategy, also plot out the accuracy with the two different aggregation strategies. Include vertical error bars if possible (by re-running the experiments).
 
-**Grading:** Scaling experiments (30 points).
+In a separate figure, also plot the (average) total tokens generated, including thinking and answer tokens, on the x-axis against the accuracy. If possible, include both horizontal and vertical error bars. The horizontal error bars capture the spread of the total tokens across 30 samples.
+
+**Questions:** What seems like a better scaling strategy if you care about the total compute? What is better if you care about latency (time taken for answering a question), assuming that you have enough compute available? What if you also had access to an oracle that could tell you if an answer is "good-enough"?
+
+**Deliverables:** Scaling plots for sequential and parallel strategies (tokens vs. accuracy), showing both exact and flexible accuracy, answers to the questions, experimental code.
+
+**Grading:** Scaling experiment plots (25 points), answers (5 points), code (5 points).
 
 ### 2.3 Qualitative Analysis
 
-We will qualitatively analyse and save some reasoning traces.
+We will now qualitatively analyse and save some reasoning traces. You would need to submit these traces with your submission.
 
 - Find 2 questions which are unsolved by sequential scaling at low budgets but solved at higher budgets. Do you see any change in strategy?
-- Find 2 questions which are solved correctly at a lower budget but not at a higher budget for sequential scaling.
-- Are there any questions that the parallel strategy solves correctly but the sequential does not at a particular budget? Why might this happen?
+- Find 2 questions which are solved correctly at a lower budget but not at a higher budget for sequential scaling. What do you observe?
+- Are there any questions that the parallel strategy solves correctly but the sequential does not at a particular budget? Why might this be happening?
 - Do the parallel traces lead to diverse answers or solving strategies?
 
 **Deliverables:** Short write-up addressing the four points above, with saved reasoning traces.
@@ -140,7 +147,7 @@ We will qualitatively analyse and save some reasoning traces.
 
 ### 2.4 Improving Parallel Scaling
 
-We will modify some components of the parallel scaling strategy to improve accuracy. Options include: changing the temperature, using XTC or Min-P sampling, using different prompting strategies, or hybrid approaches that combine sequential and parallel scaling. Try any **two** strategies (you are welcome to innovate) and measure how much better you can make the scaling curve for your model at a total token budget of 32,000 tokens.
+Based on the qualitative and quantitative analysis above, we will try to push up the scaling performance. We will modify some components of the parallel scaling strategy to improve accuracy. Some suggestions include: changing the temperature or other sampling parameters, using XTC sampling (https://github.com/oobabooga/text-generation-webui/pull/6335), using different prompting strategies, or hybrid approaches that combine sequential and parallel scaling. Try any **two** strategies (you are welcome to innovate) and measure how much better you can make the scaling curve for your model at a total token budget of 16,000 and 32,000 tokens.
 
 **Deliverables:** Plots of the modified scaling curves overlaid with the baseline, a brief description of each strategy tried, and code.
 
@@ -148,7 +155,7 @@ We will modify some components of the parallel scaling strategy to improve accur
 
 ---
 
-## Section 3: Synthesis and Analysis (20 points)
+## Section 3: Synthesis and Analysis (15 points)
 
 In this assignment, you trained small transformers on algorithmic tasks and explored inference-time scaling on reasoning models. These represent two very different approaches to improving model performance: investing compute at *train time* (more steps, leading to grokking) versus at *test time* (more tokens via sequential/parallel strategies).
 
