@@ -281,7 +281,7 @@ def sanity_full_match(
     tokenizer: SanityTokenizer,
     device: torch.device,
     prompt_len: int = 0,
-    max_new_tokens: int = 16,
+    max_new_tokens: Optional[int] = None,
 ) -> bool:
     """Greedy-generate the suffix from a ``prompt_len``-token prompt.
 
@@ -289,11 +289,25 @@ def sanity_full_match(
     full sentence ``[I, love, machine, learning, EOS]`` back.  With
     ``prompt_len = 3`` the prompt is ``[BOS, I, love]`` and we expect
     ``[machine, learning, EOS]``.
+
+    ``max_new_tokens`` defaults to ``len(expected_ids)``, which is the
+    minimum required to declare a match (any longer would just stay false
+    and risk overflowing the model's block_size when it is still untrained).
     """
     full = tokenizer.encode_words(list(tokenizer.words))  # [BOS, I, love, machine, learning, EOS]
     cut = max(prompt_len, 1)
     prompt_ids = full[:cut]
     expected_ids = full[cut:]
+
+    if max_new_tokens is None:
+        max_new_tokens = len(expected_ids)
+
+    # Hard cap by the model's context window so the assert in model.forward
+    # never trips even if the model never emits EOS.
+    block_budget = model.config.block_size - len(prompt_ids)
+    if block_budget < 1:
+        return False
+    max_new_tokens = min(max_new_tokens, block_budget)
 
     was_training = model.training
     model.eval()
