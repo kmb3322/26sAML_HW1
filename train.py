@@ -16,10 +16,11 @@ import json
 import random
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from tqdm import trange
 
 from model import GPT, GPTConfig
@@ -30,7 +31,102 @@ from tokenizer_data import (
     make_sanity_examples,
     rows_to_examples,
 )
-from train_utils import collate_lm_batch, masked_cross_entropy
+
+
+# ---------------------------------------------------------------------------
+# Batch collation + masked cross-entropy
+# (formerly in train_utils.py; inlined to keep file count minimal)
+# ---------------------------------------------------------------------------
+
+
+def collate_lm_batch(
+    batch: List[Dict],
+    pad_id: int,
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Pad variable-length sequences for next-token language model training.
+
+    Returns:
+      x: ``[B, T-1]`` token ids (pad-filled)
+      y: ``[B, T-1]`` next-token targets (-100 for pad, ignored by CE)
+      target_mask: ``[B, T-1]`` 1.0 at positions where the loss should count
+    """
+    max_len = max(len(ex["ids"]) for ex in batch)
+    B = len(batch)
+    T = max_len - 1
+
+    x = torch.full((B, T), pad_id, dtype=torch.long)
+    y = torch.full((B, T), -100, dtype=torch.long)
+    target_mask = torch.zeros((B, T), dtype=torch.float32)
+
+    for i, ex in enumerate(batch):
+        ids = torch.tensor(ex["ids"], dtype=torch.long)
+        m = torch.tensor(ex["target_mask"], dtype=torch.float32)
+        seq_T = len(ids) - 1
+        x[i, :seq_T] = ids[:-1]
+        y[i, :seq_T] = ids[1:]
+        target_mask[i, :seq_T] = m
+
+    return x, y, target_mask
+
+
+def masked_cross_entropy(
+    logits: torch.Tensor,
+    y: torch.Tensor,
+    target_mask: torch.Tensor,
+) -> torch.Tensor:
+    """Mean cross-entropy across positions where ``target_mask`` is non-zero."""
+    B, T, V = logits.shape
+    per_token_loss = F.cross_entropy(
+        logits.reshape(B * T, V),
+        y.reshape(B * T),
+        reduction="none",
+        ignore_index=-100,
+    ).reshape(B, T)
+    denom = target_mask.sum().clamp_min(1.0)
+    return (per_token_loss * target_mask).sum() / denom
+
+
+# ---------------------------------------------------------------------------
+# Per-run plotting (formerly in plot_metrics.py)
+# ---------------------------------------------------------------------------
+
+
+def plot_one_run(csv_path: str, out_dir: str, title: str = "") -> None:
+    """Read a metrics.csv and write loss.png + acc.png next to it."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    df = pd.read_csv(csv_path)
+
+    plt.figure()
+    for col, lbl in [("train_loss", "train"), ("val_loss", "val"), ("test_loss", "test")]:
+        if col in df and df[col].notna().any():
+            plt.plot(df["step"], df[col], label=lbl)
+    plt.xlabel("step")
+    plt.ylabel("loss")
+    plt.yscale("log")
+    plt.title(title or "loss")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out / "loss.png", dpi=200)
+    plt.close()
+
+    plt.figure()
+    for col, lbl in [("train_acc", "train"), ("val_acc", "val"), ("test_acc", "test")]:
+        if col in df and df[col].notna().any():
+            plt.plot(df["step"], df[col], label=lbl)
+    plt.xlabel("step")
+    plt.ylabel("accuracy")
+    plt.ylim(-0.02, 1.02)
+    plt.title(title or "accuracy")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out / "acc.png", dpi=200)
+    plt.close()
 
 
 # ---------------------------------------------------------------------------
@@ -433,10 +529,8 @@ def train(cfg: RunConfig) -> None:
 
     if cfg.auto_plot:
         try:
-            from plot_metrics import plot_one_run
             run_label = cfg.run_name or out_dir.name
-            title = f"{run_label} ({cfg.task})"
-            plot_one_run(str(log_path), str(out_dir), title=title)
+            plot_one_run(str(log_path), str(out_dir), title=f"{run_label} ({cfg.task})")
             print(f"Saved per-run plots to: {out_dir}/loss.png, {out_dir}/acc.png")
         except Exception as e:
             print(f"[auto_plot] skipped: {e!r}")
