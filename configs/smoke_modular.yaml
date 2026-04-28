@@ -1,0 +1,30 @@
+# Tiny smoke run for modular addition; finishes in seconds on CPU.
+# Useful to verify the pipeline before kicking off a long run.
+task: modular
+op: "+"
+p: 97
+
+seed: 0
+train_frac: 0.50
+val_frac: 0.10
+
+n_layer: 1
+n_head: 4
+n_embd: 128
+block_size: 16
+dropout: 0.0
+bias: true
+
+optimizer: adam
+lr: 0.001
+beta1: 0.9
+beta2: 0.98
+weight_decay: 0.0
+grad_clip: 1.0
+
+batch_size: 256
+max_steps: 1000
+eval_every: 200
+eval_batch_size: 4096
+
+out_dir: runs/smoke_modular
