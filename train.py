@@ -77,6 +77,7 @@ class RunConfig:
     # IO
     out_dir: str = "runs/debug"
     run_name: Optional[str] = None
+    auto_plot: bool = True           # write loss.png/acc.png next to metrics.csv at end
 
 
 def seed_everything(seed: int) -> None:
@@ -430,6 +431,16 @@ def train(cfg: RunConfig) -> None:
     print(f"Done. Final metrics: {latest_metrics}")
     print(f"Saved checkpoints under: {out_dir}")
 
+    if cfg.auto_plot:
+        try:
+            from plot_metrics import plot_one_run
+            run_label = cfg.run_name or out_dir.name
+            title = f"{run_label} ({cfg.task})"
+            plot_one_run(str(log_path), str(out_dir), title=title)
+            print(f"Saved per-run plots to: {out_dir}/loss.png, {out_dir}/acc.png")
+        except Exception as e:
+            print(f"[auto_plot] skipped: {e!r}")
+
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -479,6 +490,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
     parser.add_argument("--out_dir", type=str, default=None)
     parser.add_argument("--run_name", type=str, default=None)
+    parser.add_argument("--auto_plot", type=_parse_bool, default=None)
 
     return parser
 
