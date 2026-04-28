@@ -278,19 +278,25 @@ def rows_to_examples(rows: List[Dict], tokenizer: ResidueTokenizer) -> List[Dict
 
 def make_sanity_examples(
     tokenizer: SanityTokenizer,
-    mask_first_n_targets: int = 0,
+    prompt_len: int = 0,
 ) -> List[Dict]:
     """Single training example for the memorization sanity check.
 
     Token sequence: ``[BOS, I, love, machine, learning, EOS]`` (length 6).
 
-    ``mask_first_n_targets`` controls how many of the first target positions
-    are masked out of the loss.  With ``mask_first_n_targets=3`` the loss is
-    only computed on the targets ``[machine, learning, EOS]``, which is the
-    second sanity check from the assignment.
+    ``prompt_len`` is the number of leading tokens that are treated as a
+    prompt -- the loss is masked on every prediction *made from inside the
+    prompt*.  With ``prompt_len=3`` the prompt is ``[BOS, I, love]`` and the
+    loss is computed only on the targets ``[machine, learning, EOS]``, which
+    is the second sanity check from the assignment.
+
+    Concretely, target positions ``0 .. prompt_len-2`` are masked (they are
+    the predictions of the 2nd, 3rd, ... prompt tokens).  ``prompt_len <= 1``
+    means no masking.
     """
     ids = tokenizer.encode_words(list(tokenizer.words))
     target_mask = [1.0] * (len(ids) - 1)
-    for i in range(min(mask_first_n_targets, len(target_mask))):
+    n_mask = max(prompt_len - 1, 0)
+    for i in range(min(n_mask, len(target_mask))):
         target_mask[i] = 0.0
-    return [{"ids": ids, "target_mask": target_mask}]
+    return [{"ids": ids, "target_mask": target_mask, "prompt_len": prompt_len}]

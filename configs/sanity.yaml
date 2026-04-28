@@ -1,7 +1,7 @@
 # Sanity check #1: memorize "I love machine learning" with full-token loss.
 task: sanity
 seed: 0
-sanity_mask_first_n_targets: 0
+sanity_prompt_len: 0          # 0 = no prompt masking; train on every target.
 
 n_layer: 1
 n_head: 2

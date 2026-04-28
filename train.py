@@ -44,7 +44,7 @@ class RunConfig:
     task: str = "modular"            # "modular" | "sanity"
     op: str = "+"                    # for modular
     p: int = 97                      # for modular
-    sanity_mask_first_n_targets: int = 0  # for sanity
+    sanity_prompt_len: int = 0       # for sanity: how many leading tokens are prompt
 
     # Data
     seed: int = 0
@@ -183,18 +183,20 @@ def sanity_full_match(
     model: GPT,
     tokenizer: SanityTokenizer,
     device: torch.device,
-    prompt_ids: Optional[List[int]] = None,
-    expected_ids: Optional[List[int]] = None,
+    prompt_len: int = 0,
     max_new_tokens: int = 16,
 ) -> bool:
-    """Greedy-generate from ``prompt_ids`` and check exact match against ``expected_ids``.
+    """Greedy-generate the suffix from a ``prompt_len``-token prompt.
 
-    Defaults to: prompt = ``[BOS]``; expected = ``[I, love, machine, learning, EOS]``.
+    With ``prompt_len <= 1`` the prompt is just ``[BOS]`` and we expect the
+    full sentence ``[I, love, machine, learning, EOS]`` back.  With
+    ``prompt_len = 3`` the prompt is ``[BOS, I, love]`` and we expect
+    ``[machine, learning, EOS]``.
     """
-    if prompt_ids is None:
-        prompt_ids = [tokenizer.bos_id]
-    if expected_ids is None:
-        expected_ids = [tokenizer.stoi[w] for w in tokenizer.words] + [tokenizer.eos_id]
+    full = tokenizer.encode_words(list(tokenizer.words))  # [BOS, I, love, machine, learning, EOS]
+    cut = max(prompt_len, 1)
+    prompt_ids = full[:cut]
+    expected_ids = full[cut:]
 
     was_training = model.training
     model.eval()
@@ -311,12 +313,12 @@ def train(cfg: RunConfig) -> None:
         tokenizer = SanityTokenizer()
         train_examples = make_sanity_examples(
             tokenizer,
-            mask_first_n_targets=cfg.sanity_mask_first_n_targets,
+            prompt_len=cfg.sanity_prompt_len,
         )
         val_examples = []
         test_examples = []
         splits = {"train": [], "val": [], "test": []}
-        print(f"Sanity task | mask_first_n_targets={cfg.sanity_mask_first_n_targets}")
+        print(f"Sanity task | prompt_len={cfg.sanity_prompt_len}")
 
     else:
         raise ValueError(f"Unknown task: {cfg.task}")
@@ -385,7 +387,7 @@ def train(cfg: RunConfig) -> None:
                 )
                 metrics["val_loss"] = float("nan")
                 metrics["test_loss"] = float("nan")
-                match = sanity_full_match(model, tokenizer, device)
+                match = sanity_full_match(model, tokenizer, device, prompt_len=cfg.sanity_prompt_len)
                 metrics["train_acc"] = float(match)
                 metrics["val_acc"] = float("nan")
                 metrics["test_acc"] = float("nan")
@@ -449,7 +451,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--task", type=str, default=None, choices=["modular", "sanity"])
     parser.add_argument("--op", type=str, default=None, choices=["+", "-", "/"])
     parser.add_argument("--p", type=int, default=None)
-    parser.add_argument("--sanity_mask_first_n_targets", type=int, default=None)
+    parser.add_argument("--sanity_prompt_len", type=int, default=None)
 
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--train_frac", type=float, default=None)
