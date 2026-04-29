@@ -49,8 +49,10 @@ configs/
   sanity_masked.yaml          # Part 0:    prompt_len=3, train on suffix
   smoke_modular.yaml          # 1k-step smoke for the modular pipeline
 
-  add_p{97,113}_l{1,2}_seed0.yaml,  sub_p{97,113}_l{1,2}_seed0.yaml
-                              # Part 1.2: 8 main warmup runs
+  add_p{97,113}_l{1,2}_seed0.yaml
+  sub_p{97,113}_l{1,2}_seed0.yaml
+  div_p{97,113}_l{1,2}_seed0.yaml
+                              # Part 1.2: main Adam runs
 
   div_p97_grokking_seed0.yaml # Part 1.3: AdamW, wd=1.0, 100k steps
 
@@ -66,3 +68,9 @@ The `(p=97, +, 1-layer)` random-restart triple uses CLI overrides on
 A "checkpoint dir" is any directory containing a `ckpt.pt` written by
 `train.py` (e.g. `runs/<run_name>/best`, `runs/<run_name>/final`).
 
+For the submitted Section 1.2 random-restart checkpoint, use the final
+checkpoint from seed 2:
+
+```text
+cse493s_hw1_runs/add_p97_l1_seed2/final/ckpt.pt
+```

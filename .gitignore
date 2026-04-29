@@ -1,8 +1,10 @@
 # Run artifacts
 runs/
 plots/
+cse493s_hw1_runs/
 data/
 *.pt
+*.zip
 
 # Python
 __pycache__/
@@ -17,5 +19,3 @@ venv/
 .DS_Store
 .idea/
 .vscode/
-
-.cse493s_hw1_runs/
