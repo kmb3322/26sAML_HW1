@@ -1,11 +1,8 @@
-"""Training entry point for the sanity check and modular arithmetic tasks.
-
-Usage:
+"""
+Example usage:
     python train.py --config configs/sanity.yaml
     python train.py --config configs/add_p97_l1_seed0.yaml
     python train.py --task modular --op + --p 97 --n_layer 1 --seed 0 --out_dir runs/foo
-
-CLI flags override YAML values, which override the dataclass defaults.
 """
 
 from __future__ import annotations
@@ -33,22 +30,18 @@ from tokenizer_data import (
 )
 
 
-# ---------------------------------------------------------------------------
-# Batch collation + masked cross-entropy
-# (formerly in train_utils.py; inlined to keep file count minimal)
-# ---------------------------------------------------------------------------
-
 
 def collate_lm_batch(
     batch: List[Dict],
     pad_id: int,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Pad variable-length sequences for next-token language model training.
+    """
+    Pad variable-length sequences for next-token LM training.
 
     Returns:
-      x: ``[B, T-1]`` token ids (pad-filled)
-      y: ``[B, T-1]`` next-token targets (-100 for pad, ignored by CE)
-      target_mask: ``[B, T-1]`` 1.0 at positions where the loss should count
+        x: [B, T-1] token ids
+        y: [B, T-1] next-token targets (-100 for pad)
+        target_mask: [B, T-1] 1.0 at positions where the loss should count
     """
     max_len = max(len(ex["ids"]) for ex in batch)
     B = len(batch)
@@ -74,7 +67,7 @@ def masked_cross_entropy(
     y: torch.Tensor,
     target_mask: torch.Tensor,
 ) -> torch.Tensor:
-    """Mean cross-entropy across positions where ``target_mask`` is non-zero."""
+
     B, T, V = logits.shape
     per_token_loss = F.cross_entropy(
         logits.reshape(B * T, V),
@@ -86,13 +79,10 @@ def masked_cross_entropy(
     return (per_token_loss * target_mask).sum() / denom
 
 
-# ---------------------------------------------------------------------------
-# Per-run plotting (formerly in plot_metrics.py)
-# ---------------------------------------------------------------------------
 
 
 def plot_one_run(csv_path: str, out_dir: str, title: str = "") -> None:
-    """Read a metrics.csv and write loss.png + acc.png next to it."""
+    """Read a metrics.csv, write loss.png + acc.png"""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -129,15 +119,13 @@ def plot_one_run(csv_path: str, out_dir: str, title: str = "") -> None:
     plt.close()
 
 
-# ---------------------------------------------------------------------------
-# Run config
-# ---------------------------------------------------------------------------
+
 
 
 @dataclass
 class RunConfig:
     # Task
-    task: str = "modular"            # "modular" | "sanity"
+    task: str = "modular"            # modular or sanity
     op: str = "+"                    # for modular
     p: int = 97                      # for modular
     sanity_prompt_len: int = 0       # for sanity: how many leading tokens are prompt
@@ -146,7 +134,7 @@ class RunConfig:
     seed: int = 0
     train_frac: float = 0.50
     val_frac: float = 0.10
-    max_p: int = 113                 # tokenizer range for modular task
+    max_p: int = 113                 # tokenizer range for modular
 
     # Model
     n_layer: int = 1
@@ -157,7 +145,7 @@ class RunConfig:
     bias: bool = True
 
     # Optimizer
-    optimizer: str = "adam"          # "adam" | "adamw"
+    optimizer: str = "adam"          # adam or adamw
     lr: float = 1e-3
     beta1: float = 0.9
     beta2: float = 0.98
@@ -173,7 +161,7 @@ class RunConfig:
     # IO
     out_dir: str = "runs/debug"
     run_name: Optional[str] = None
-    auto_plot: bool = True           # write loss.png/acc.png next to metrics.csv at end
+    auto_plot: bool = True           # write loss.png/acc.png next to metrics.csv
 
 
 def seed_everything(seed: int) -> None:
@@ -191,11 +179,6 @@ def load_yaml_config(path: str) -> Dict[str, Any]:
     if not isinstance(data, dict):
         raise ValueError(f"Top-level YAML at {path} must be a mapping, got {type(data)}.")
     return data
-
-
-# ---------------------------------------------------------------------------
-# Eval helpers
-# ---------------------------------------------------------------------------
 
 
 @torch.no_grad()
@@ -283,16 +266,12 @@ def sanity_full_match(
     prompt_len: int = 0,
     max_new_tokens: Optional[int] = None,
 ) -> bool:
-    """Greedy-generate the suffix from a ``prompt_len``-token prompt.
-
-    With ``prompt_len <= 1`` the prompt is just ``[BOS]`` and we expect the
-    full sentence ``[I, love, machine, learning, EOS]`` back.  With
-    ``prompt_len = 3`` the prompt is ``[BOS, I, love]`` and we expect
-    ``[machine, learning, EOS]``.
-
-    ``max_new_tokens`` defaults to ``len(expected_ids)``, which is the
-    minimum required to declare a match (any longer would just stay false
-    and risk overflowing the model's block_size when it is still untrained).
+    """
+    Generate the suffix from a prompt_len-token prompt.
+    With prompt_len <= 1:
+    the prompt is [BOS] and we expect [I, love, machine, learning, EOS]
+    With prompt_len = 3:
+    the prompt is [BOS, I, love] and we expect [machine, learning, EOS].
     """
     full = tokenizer.encode_words(list(tokenizer.words))  # [BOS, I, love, machine, learning, EOS]
     cut = max(prompt_len, 1)
@@ -302,8 +281,8 @@ def sanity_full_match(
     if max_new_tokens is None:
         max_new_tokens = len(expected_ids)
 
-    # Hard cap by the model's context window so the assert in model.forward
-    # never trips even if the model never emits EOS.
+
+
     block_budget = model.config.block_size - len(prompt_ids)
     if block_budget < 1:
         return False
@@ -327,9 +306,6 @@ def sanity_full_match(
     return generated == expected_ids
 
 
-# ---------------------------------------------------------------------------
-# Optimizer + checkpointing
-# ---------------------------------------------------------------------------
 
 
 def build_optimizer(model: GPT, cfg: RunConfig):
@@ -389,9 +365,6 @@ def write_metrics_row(log_path: Path, row: Dict, fieldnames: List[str]) -> None:
         writer.writerow(row)
 
 
-# ---------------------------------------------------------------------------
-# Training loop
-# ---------------------------------------------------------------------------
 
 
 def train(cfg: RunConfig) -> None:
@@ -402,7 +375,7 @@ def train(cfg: RunConfig) -> None:
     out_dir = Path(cfg.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # ---- task-specific data + tokenizer ----
+    # data + tokenizer
     if cfg.task == "modular":
         tokenizer = ResidueTokenizer(max_p=cfg.max_p)
         splits = make_modular_rows(
@@ -434,7 +407,7 @@ def train(cfg: RunConfig) -> None:
     else:
         raise ValueError(f"Unknown task: {cfg.task}")
 
-    # ---- model + optimizer ----
+    # model + optimizer
     gpt_cfg = GPTConfig(
         block_size=cfg.block_size,
         vocab_size=tokenizer.vocab_size,
@@ -450,7 +423,7 @@ def train(cfg: RunConfig) -> None:
     with open(out_dir / "run_config.json", "w") as f:
         json.dump(asdict(cfg), f, indent=2)
 
-    # ---- logging ----
+    # logging
     log_path = out_dir / "metrics.csv"
     if log_path.exists():
         log_path.unlink()
@@ -466,7 +439,7 @@ def train(cfg: RunConfig) -> None:
 
     pbar = trange(cfg.max_steps + 1)
     for step in pbar:
-        # ---- evaluation ----
+        # evaluation
         if step % cfg.eval_every == 0:
             metrics: Dict[str, float] = {"step": step}
 
@@ -489,7 +462,7 @@ def train(cfg: RunConfig) -> None:
                 metrics["test_acc"] = modular_answer_accuracy(
                     model, splits["test"], tokenizer, cfg.p, device, cfg.eval_batch_size
                 )
-                # Best-checkpoint selection uses val only (no test leakage).
+                # best-checkpoint selection uses val only
                 tracker_acc = metrics["val_acc"]
 
             else:  # sanity
@@ -525,7 +498,7 @@ def train(cfg: RunConfig) -> None:
         if step == cfg.max_steps:
             break
 
-        # ---- one training step ----
+        # one training step
         x, y, mask = sample_batch(train_examples, cfg.batch_size, tokenizer.pad_id, rng)
         x, y, mask = x.to(device), y.to(device), mask.to(device)
         logits = model(x)
@@ -550,11 +523,9 @@ def train(cfg: RunConfig) -> None:
             print(f"[auto_plot] skipped: {e!r}")
 
 
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
 
 
+#CLI
 def _parse_bool(s: str) -> bool:
     if s.lower() in ("true", "1", "yes", "y"):
         return True

@@ -7,31 +7,32 @@ or change their signatures.
 
 You may import from other files in your repo. You may add helper functions.
 Just make sure the three functions below work as specified.
-
-We implement the three required functions as a thin wrapper around
-``inference.py``.  The checkpoint directory must contain a ``ckpt.pt`` saved
-by ``train.py``.  Both the sanity-check checkpoint (``SanityTokenizer``) and
-the modular-arithmetic checkpoint (``ResidueTokenizer``) are supported.
 """
 
 from inference import load_checkpoint, predict_modular_answer
 
 
 def load_model_and_tokenizer(checkpoint_dir: str):
-    """Load model + tokenizer from a directory containing ``ckpt.pt``.
+    """
+    Load a trained model and its tokenizer from a checkpoint directory.
 
-    The model is moved onto an appropriate device and put into eval mode.
+    Args:
+        checkpoint_dir: Path to a directory containing your saved model
+            and any tokenizer files you need.
+
+    Returns:
+        A tuple (model, tokenizer). The model should be ready for inference
+        (in eval mode, on an appropriate device). The tokenizer should be
+        whatever object your predict_answer / generate_sanity_check functions
+        expect — we do not constrain its type.
     """
     model, tokenizer, _device, _ckpt = load_checkpoint(checkpoint_dir)
     return model, tokenizer
 
 
 def get_bos_token(tokenizer=None):
-    """Return the BOS token id for the supplied tokenizer.
-
-    All tokenizers in this repo expose ``bos_id`` (an int).  When no
-    tokenizer is provided we cannot identify the right BOS, so we return
-    ``None``.
+    """
+    Get the BOS token for the tokenizer, for part 0 of the assignment.
     """
     if tokenizer is None:
         return None
@@ -39,8 +40,23 @@ def get_bos_token(tokenizer=None):
 
 
 def predict_answer(model, tokenizer, a: int, b: int, op: str, p: int) -> int:
-    """Predict ``c`` such that ``a op b ≡ c (mod p)`` using the trained model."""
-    import torch  # local to avoid hard import for callers that only need bos.
+    """
+    Predict the answer to a modular arithmetic problem.
+
+    Args:
+        model: The model returned by load_model_and_tokenizer.
+        tokenizer: The tokenizer returned by load_model_and_tokenizer.
+        a: First operand, integer in [0, p).
+        b: Second operand, integer in [0, p).
+        op: One of '+', '-', '/'.
+        p: The modulus (97 or 113).
+
+    Returns:
+        The model's predicted answer as an integer in [0, p).
+        You are responsible for formatting the input according to your
+        training scheme and parsing the model's output back to an integer.
+    """
+    import torch
 
     device = next(model.parameters()).device
     return predict_modular_answer(model, tokenizer, a, b, op, p, device=device)

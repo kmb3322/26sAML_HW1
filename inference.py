@@ -1,14 +1,10 @@
-"""Load a trained checkpoint and run inference.
-
-Examples:
-    # Modular arithmetic prediction:
+"""
+Example usage:
     python inference.py --checkpoint_dir runs/add_p97_l1_seed0/best \
         --a 12 --b 34 --op + --p 97
 
-    # Sanity-check generation from BOS:
     python inference.py --checkpoint_dir runs/sanity/final
 
-    # Sanity-check generation with a partial prompt (BOS prepended automatically):
     python inference.py --checkpoint_dir runs/sanity_masked/final \
         --sanity_prompt "I love"
 """
@@ -55,11 +51,8 @@ def predict_modular_answer(
     p: int,
     device: Optional[torch.device] = None,
 ) -> int:
-    """Predict ``c`` such that ``a op b ≡ c (mod p)``.
-
-    The argmax is taken over the ``p`` numeric tokens ``<n:0>, ..., <n:p-1>``
-    only -- so the model can never return a punctuation/special token even
-    when undertrained.
+    """
+    Predict c such that a op b ≡ c (mod p).
     """
     if device is None:
         device = next(model.parameters()).device
@@ -83,7 +76,9 @@ def greedy_generate(
     max_new_tokens: int = 32,
     device: Optional[torch.device] = None,
 ) -> List[int]:
-    """Greedy decode starting from ``input_ids``.  Returns the full sequence."""
+    """
+    Greedy decode starting from input_ids.  Returns the full sequence.
+    """
     if device is None:
         device = next(model.parameters()).device
 
