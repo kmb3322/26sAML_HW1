@@ -17,3 +17,5 @@ venv/
 .DS_Store
 .idea/
 .vscode/
+
+.cse493s_hw1_runs/
