@@ -51,8 +51,10 @@ configs/
 
   add_p{97,113}_l{1,2}_seed0.yaml
   sub_p{97,113}_l{1,2}_seed0.yaml
+                              # Part 1.2: main Adam warm-up runs
+
   div_p{97,113}_l{1,2}_seed0.yaml
-                              # Part 1.2: main Adam runs
+                              # Extra Adam division controls
 
   div_p97_grokking_seed0.yaml # Part 1.3: AdamW, wd=1.0, 100k steps
 
